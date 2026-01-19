@@ -1,9 +1,11 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <stdio.h>
+#include <string.h>
 
 void ash_loop(void);
 char* ash_read_line(void);
+char** ash_split_line(char *line);
 
 int main(int argc, char **argv)
 {
@@ -67,4 +69,36 @@ char* ash_read_line(void)
             }
         }
     }
+}
+
+#define ASH_TOK_BUFSIZE 64
+#define ASH_TOK_DELIM " \t\r\n\a"
+char** ash_split_line(char *line)
+{
+    int bufsize = ASH_TOK_BUFSIZE, position = 0;
+    char** tokens = malloc(bufsize * sizeof(char*));
+    char* token;
+
+    if(!tokens) {
+        fprintf(stderr, "ash: allocation error\n");
+        exit(EXIT_FAILURE);
+    }
+
+    token = strtok(line, ASH_TOK_DELIM); // divide string into tokens using delimiters
+    while(token != NULL) {
+        tokens[position] = token;
+        position++;
+        // resizing our buffer and error checking
+        if(position >= bufsize) {
+            bufsize += ASH_TOK_BUFSIZE;
+            tokens = realloc(tokens, bufsize * sizeof(char*));
+            if(!tokens) {
+                fprintf(stderr, "ash: reallocation error\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+        token = strtok(NULL, ASH_TOK_BUFSIZE); // pass in NULL for first parameter to continue processing string from last position
+    }
+    tokens[position] = NULL;
+    return tokens;
 }
