@@ -2,10 +2,14 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 void ash_loop(void);
 char* ash_read_line(void);
 char** ash_split_line(char *line);
+int ash_launch(char **args);
 
 int main(int argc, char **argv)
 {
@@ -101,4 +105,28 @@ char** ash_split_line(char *line)
     }
     tokens[position] = NULL;
     return tokens;
+}
+
+int ash_launch(char** args)
+{
+    __pid_t pid, wpid;
+    int status;
+
+    pid = fork();
+    if(pid == 0) {
+        // child process
+        if(execvp(args[0], args) == -1) { // error replacing this process
+            perror("ash");
+        }
+        exit(EXIT_FAILURE);
+    } else if(pid < 0) {
+        // error forking
+        perror("ash");
+    } else {
+        // parent process
+        do {
+            wpid = waitpid(pid, &status, WUNTRACED);
+        } while(!WIFEXITED(status) && !WIFSIGNALED(status));
+    }
+    return -1;
 }
